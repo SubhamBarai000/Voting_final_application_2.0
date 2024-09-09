@@ -1,0 +1,66 @@
+    /* General styles for the Voting System component .voting-system,
+    .AdminPage,
+    .VotingPage {
+        font-family: Arial, sans-serif;
+        padding: 20px;
+        max-width: 800px;
+        margin: 0 auto;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        background-color: #f9f9f9;
+        justify-items: center;
+    }
+    
+    h1 {
+        text-align: center;
+        color: #333;
+    }
+    
+    h2 {
+        color: #555;
+    }
+    
+    p {
+        font-size: 16px;
+        color: #666;
+        text-align: center;
+    }
+    
+    button {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 4px;
+        background-color: #007bff;
+        color: #fff;
+        font-size: 16px;
+        cursor: pointer;
+        margin-right: 10px;
+        transition: background-color 0.3s;
+    }
+    
+    button:hover {
+        background-color: #0056b3;
+    }
+    
+    input[type="text"] {
+        padding: 8px;
+        font-size: 16px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        margin-right: 10px;
+    }
+    
+    div {
+        margin-bottom: 20px;
+    }
+    
+    .alert {
+        color: red;
+        font-weight: bold;
+        margin-top: 10px;
+    }
+    
+    .success {
+        color: green;
+        font-weight: bold;
+    } */
