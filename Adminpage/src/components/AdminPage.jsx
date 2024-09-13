@@ -1,174 +1,92 @@
-// import React, { useState, useEffect } from 'react';
-// import { ethers } from 'ethers';
-// import VotingSystemABI from '../abi/VotingSystemABI.json';
-
-// const AdminPage = () => {
-//   const [account, setAccount] = useState('');
-//   const [isAdmin, setIsAdmin] = useState(false);
-//   const [voterAddress, setVoterAddress] = useState('');
-//   const [candidateId, setCandidateId] = useState('');
-//   const [voteCount, setVoteCount] = useState(null); // State to store vote count
-//   const [contract, setContract] = useState(null);
-
-//   // Replace with your deployed contract address
-//   //const contractAddress = '0xa2dcb616b9f65ea003516dcfd3ca2ab957389f6b'; 
-//   const contractAddress = '0xdcbf26b8e10faf9c87e629020b90cc96b7dc2dce';
-
-//   useEffect(() => {
-//     const loadBlockchainData = async () => {
-//       if (window.ethereum) {
-//         const provider = new ethers.providers.Web3Provider(window.ethereum);
-//         const signer = provider.getSigner();
-//         const accounts = await provider.send('eth_requestAccounts', []);
-//         setAccount(accounts[0]);
-
-//         const votingContract = new ethers.Contract(contractAddress, VotingSystemABI, signer);
-//         setContract(votingContract);
-
-//         const admin = await votingContract.admin();
-//         setIsAdmin(admin.toLowerCase() === accounts[0].toLowerCase());
-//       } else {
-//         alert('Please install MetaMask to use this application.');
-//       }
-//     };
-//     loadBlockchainData();
-//   }, []);
-
-//   const issueToken = async () => {
-//     if (!voterAddress) {
-//       alert('Please enter a voter address');
-//       return;
-//     }
-
-//     if (isAdmin && contract) {
-//       try {
-//         await contract.issueToken(voterAddress);
-//         alert(`Token issued to ${voterAddress}`);
-//       } catch (error) {
-//         alert('An error occurred while issuing the token.');
-//         console.error(error);
-//       }
-//     }
-//   };
-
-//   // Function to get the vote count for a specific candidate
-//   const getVoteCount = async () => {
-//     if (!candidateId) {
-//       alert('Please enter a candidate ID');
-//       return;
-//     }
-
-//     if (contract) {
-//       try {
-//         const count = await contract.getVotes(candidateId);
-//         setVoteCount(count.toString());
-//       } catch (error) {
-//         alert('An error occurred while fetching the vote count.');
-//         console.error(error);
-//       }
-//     }
-//   };
-
-//   return (
-//     <div style={styles.container}>
-//       <h1>Admin Page</h1>
-//       <p>Connected account: {account}</p>
-//       {isAdmin ? (
-//         <div>
-//           <div>
-//             <input
-//               type="text"
-//               placeholder="Voter Address"
-//               value={voterAddress}
-//               onChange={(e) => setVoterAddress(e.target.value)}
-//               style={styles.input}
-//             />
-//             <button onClick={issueToken} style={styles.button}>Issue Token</button>
-//           </div>
-//           <div>
-//             <input
-//               type="text"
-//               placeholder="Candidate ID"
-//               value={candidateId}
-//               onChange={(e) => setCandidateId(e.target.value)}
-//               style={styles.input}
-//             />
-//             <button onClick={getVoteCount} style={styles.button}>Get Vote Count</button>
-//             {voteCount !== null && (
-//               <p>Candidate {candidateId} has {voteCount} vote(s).</p>
-//             )}
-//           </div>
-//         </div>
-//       ) : (
-//         <p>You are not authorized to issue tokens.</p>
-//       )}
-//     </div>
-//   );
-// };
-
-// const styles = {
-//   container: {
-//     textAlign: 'center',
-//     display: 'flex',
-//     flexDirection: 'column',
-//     justifyContent: 'center',
-//     alignItems: 'center',
-//     height: '100vh',
-//   },
-//   formContainer: {
-//     display: 'flex',
-//     flexDirection: 'column',
-//     alignItems: 'center',
-//     gap: '10px',
-//   },
-//   input: {
-//     padding: '10px',
-//     fontSize: '16px',
-//     width: '300px',
-//   },
-//   button: {
-//     padding: '10px 20px',
-//     fontSize: '16px',
-//     backgroundColor: '#007bff',
-//     color: 'white',
-//     border: 'none',
-//     borderRadius: '5px',
-//     cursor: 'pointer',
-//     marginTop: '10px',
-//   },
-// };
-
-// export default AdminPage;
 import React, { useState, useEffect } from 'react';
 import { ethers } from 'ethers';
-import VotingSystemABI from '../abi/VotingSystemABI.json';
+import VotingSystemABI from '../components/VotingSystemABI.json'; // Import the ABI for the voting contract
 import './style/AdminPage.css'; // Import the CSS file
 
 const AdminPage = () => {
+  // State to store the connected MetaMask account
   const [account, setAccount] = useState('');
+  
+  // State to check if the connected account is the admin
   const [isAdmin, setIsAdmin] = useState(false);
+
+  // State to store the voter address for issuing tokens
   const [voterAddress, setVoterAddress] = useState('');
+
+  // State to store the list of candidates with their vote counts
   const [candidates, setCandidates] = useState([]);
+
+  // State to store transaction hashes for issued tokens
+  const [transactionHashes, setTransactionHashes] = useState({});
+
+  // State to store the contract instance
   const [contract, setContract] = useState(null);
 
-  const contractAddress = '0x76A0b5169b72330dDdE31F5D981DB59F08A6ca3b'; // Replace with your deployed contract address
+  // Address of the deployed voting contract (replace with your actual contract address)
+  const contractAddress = '0x2f03e9261dcbc143f87c45a60d123c8ca2e28821';
 
+  // Function to handle account change (when the user switches MetaMask accounts)
+  const handleAccountChange = async (newAccounts) => {
+    if (newAccounts.length > 0) {
+      setAccount(newAccounts[0]); // Set the new account
+      
+      // Create a new provider and signer for the updated account
+      const provider = new ethers.providers.Web3Provider(window.ethereum);
+      const signer = provider.getSigner();
+      
+      // Reinitialize the contract instance with the new signer
+      const votingContract = new ethers.Contract(contractAddress, VotingSystemABI, signer);
+      setContract(votingContract);
+
+      // Check if the new account is the admin by comparing with the contract owner
+      const owner = await votingContract.owner();
+      setIsAdmin(owner.toLowerCase() === newAccounts[0].toLowerCase());
+
+      // Fetch the updated list of candidates and their votes
+      const candidateList = await votingContract.getAllVotesOfCandidates();
+      const candidateData = candidateList.map((candidate, index) => ({
+        id: index,
+        name: candidate.name,
+        votes: candidate.voteCount.toString()
+      }));
+      setCandidates(candidateData);
+
+      // Fetch the transaction hashes and addresses
+      const issuedTokenAddresses = await votingContract.getIssuedTokenAddresses();
+      const hashes = {};
+      for (const address of issuedTokenAddresses) {
+        const txHash = await votingContract.getTransactionHash(address);
+        hashes[address] = txHash;
+      }
+      setTransactionHashes(hashes);
+    } else {
+      // If no accounts are connected, reset the account and admin state
+      setAccount('');
+      setIsAdmin(false);
+    }
+  };
+
+  // Effect hook to load blockchain data when the component mounts
   useEffect(() => {
     const loadBlockchainData = async () => {
       if (window.ethereum) {
+        // Connect to MetaMask using ethers.js provider and signer
         const provider = new ethers.providers.Web3Provider(window.ethereum);
         const signer = provider.getSigner();
+        
+        // Request accounts from MetaMask and set the first account
         const accounts = await provider.send('eth_requestAccounts', []);
         setAccount(accounts[0]);
 
+        // Initialize the contract instance
         const votingContract = new ethers.Contract(contractAddress, VotingSystemABI, signer);
         setContract(votingContract);
 
-        // Check if the connected account is the admin
+        // Check if the connected account is the admin (contract owner)
         const owner = await votingContract.owner();
         setIsAdmin(owner.toLowerCase() === accounts[0].toLowerCase());
 
-        // Fetch candidates and their votes
+        // Fetch candidates and their vote counts from the contract
         const candidateList = await votingContract.getAllVotesOfCandidates();
         const candidateData = candidateList.map((candidate, index) => ({
           id: index,
@@ -176,32 +94,77 @@ const AdminPage = () => {
           votes: candidate.voteCount.toString()
         }));
         setCandidates(candidateData);
+
+        // Fetch the transaction hashes and addresses
+        const issuedTokenAddresses = await votingContract.getIssuedTokenAddresses();
+        const hashes = {};
+        for (const address of issuedTokenAddresses) {
+          const txHash = await votingContract.getTransactionHash(address);
+          hashes[address] = txHash;
+        }
+        setTransactionHashes(hashes);
+
+        // Set up event listener for TokenIssued event
+        votingContract.on('TokenIssued', (voter, txHash) => {
+          setTransactionHashes(prevState => ({
+            ...prevState,
+            [voter]: txHash
+          }));
+        });
       } else {
+        // Alert the user if MetaMask is not installed
         alert('Please install MetaMask to use this application.');
       }
     };
+
+    // Load blockchain data on component mount
     loadBlockchainData();
+
+    // Listen for account changes and call the handleAccountChange function
+    window.ethereum.on('accountsChanged', handleAccountChange);
+
+    // Cleanup the event listener when the component unmounts
+    return () => {
+      window.ethereum.removeListener('accountsChanged', handleAccountChange);
+    };
   }, []);
 
+  // Function to issue a token to a voter and store the transaction hash
   const issueToken = async () => {
+    // Ensure the user is the admin and the contract is loaded
     if (isAdmin && contract) {
+      // Check if a valid voter address is entered
       if (!voterAddress) {
         alert("Please enter a voter address");
         return;
       }
-      await contract.issueToken(voterAddress);
-      alert(`Token issued to ${voterAddress}`);
+      
+      try {
+        // Issue a token to the voter using the contract's issueToken function
+        const tx = await contract.issueToken(voterAddress);
+        
+        // Wait for the transaction to be mined
+        await tx.wait();
+        
+        alert(`Token issued to ${voterAddress}. Transaction Hash: ${tx.hash}`);
+      } catch (error) {
+        console.error("Error issuing token: ", error);
+        alert("Error issuing token. Check the console for details.");
+      }
     }
   };
+
 
   return (
     <div className="container">
       <h1>Admin Page</h1>
+      {/* Display the connected account */}
       <p>Connected account: {account}</p>
 
+      {/* If the user is the admin, show the token issuance form and candidate vote counts */}
       {isAdmin ? (
         <div>
-          {/* Token Issuance */}
+          {/* Token Issuance Form */}
           <input 
             type="text" 
             placeholder="Voter Address" 
@@ -210,7 +173,7 @@ const AdminPage = () => {
           />
           <button onClick={issueToken}>Issue Token</button>
 
-          {/* Display Candidate Vote Counts */}
+          {/* Display the list of candidates and their vote counts */}
           <h2>Candidate Vote Counts</h2>
           <table className="table">
             <thead>
@@ -228,8 +191,34 @@ const AdminPage = () => {
               ))}
             </tbody>
           </table>
+
+          {/* Display transaction hashes for issued tokens */}
+          <h2>Issued Token Transactions</h2>
+          <table className="table">
+            <thead>
+              <tr>
+                <th>Voter Address</th>
+                <th>Transaction Hash</th>
+              </tr>
+            </thead>
+            <tbody>
+              {Object.keys(transactionHashes).length > 0 ? (
+                Object.keys(transactionHashes).map((address, index) => (
+                  <tr key={index}>
+                    <td>{address}</td>
+                    <td><a href={`https://etherscan.io/tx/${transactionHashes[address]}`} target="_blank" rel="noopener noreferrer">{transactionHashes[address]}</a></td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="2">No tokens have been issued yet.</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
       ) : (
+        // If the user is not the admin, display an unauthorized message
         <p>You are not authorized to issue tokens or view votes.</p>
       )}
     </div>
@@ -237,4 +226,3 @@ const AdminPage = () => {
 };
 
 export default AdminPage;
-
